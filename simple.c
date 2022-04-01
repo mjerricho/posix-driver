@@ -1,0 +1,48 @@
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+
+#include <linux/interrupt.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include <linux/fs.h>
+#include <asm/io.h>
+
+#define KBD_IRQ             1       /* IRQ number for keyboard (i8042) */
+#define KBD_DATA_REG        0x60    /* I/O port for keyboard data */
+#define KBD_SCANCODE_MASK   0x7f
+#define KBD_STATUS_MASK     0x80
+#define BUFFERSIZE 10
+
+static dev_t dev = 0;
+static struct class *dev_class;
+static struct cdev my_device;
+
+static irqreturn_t kbd_handler(int irq, void *dev_id)
+{
+  char scancode;
+  scancode = inb(KBD_DATA_REG);
+  /* NOTE: i/o ops take a lot of time thus must be avoided in HW ISRs */
+  printk(KERN_INFO "Scan Code %x %s\n",
+	 scancode & KBD_SCANCODE_MASK,
+	 scancode & KBD_STATUS_MASK ? "Released" : "Pressed");
+            
+  // TODO - SAVE THE SCANCODE INSIDE A BUFFER
+  
+  return IRQ_HANDLED;
+}
+
+int finit(void) {
+  printk(KERN_INFO "Start module\n");
+  return request_irq(KBD_IRQ, kbd_handler, IRQF_SHARED, "kbd", (void *) kbd_handler);
+}    
+    
+void fexit(void) {
+  free_irq(KBD_IRQ, (void *)kbd_handler);
+  printk(KERN_INFO "Stop module\n");
+}
+    
+    
+module_init( finit );
+module_exit( fexit );
+MODULE_LICENSE("MIT");
