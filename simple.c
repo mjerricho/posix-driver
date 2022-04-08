@@ -46,7 +46,8 @@ static ssize_t driver_read(struct file *File, char *user_buffer, size_t count, l
   size_t num_count = 0;
   while (num_count < count && (head != tail)) {
     user_buffer[num_count] = buffer[tail];
-    tail = (tail + 1) & BUFFER_SIZE;
+    tail = (tail + 1) % BUFFER_SIZE;
+    num_count++;
   }
   // RETURN HOW MUCH DATA COPIED.
   return num_count;
